@@ -44,33 +44,33 @@ def perform_grid_search(model, param_grid, X_train, y_train, X_test, y_test, mod
 
 # K-Nearest Neighbors
 knn_model = KNeighborsRegressor()
-knn_param_grid = {'n_neighbors': [3, 5, 7, 10]}
+knn_param_grid = {'n_neighbors': [14, 16, 18, 19]}
 knn_best_model, knn_mse, knn_y_pred = perform_grid_search(knn_model, knn_param_grid, X_train, y_train, X_test, y_test,
                                                           'KNN')
 
 # Decision Tree
 dt_model = DecisionTreeRegressor(random_state=42)
-dt_param_grid = {'max_depth': [None, 10, 20, 30], 'min_samples_split': [2, 5, 10], 'min_samples_leaf': [1, 2, 4]}
+dt_param_grid = {'max_depth': [None, 4, 5, 6, 8], 'min_samples_split': [16, 17, 18], 'min_samples_leaf': [7, 8, 10]}
 dt_best_model, dt_mse, dt_y_pred = perform_grid_search(dt_model, dt_param_grid, X_train, y_train, X_test, y_test,
                                                        'Decision Tree')
 
 # Support Vector Machine
 svm_model = SVR()
-svm_param_grid = {'C': [0.1, 1, 10], 'kernel': ['linear', 'rbf']}
+svm_param_grid = {'C': [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 1], 'kernel': ['linear', 'rbf']}
 svm_best_model, svm_mse, svm_y_pred = perform_grid_search(svm_model, svm_param_grid, X_train, y_train, X_test, y_test,
                                                           'SVM')
 
 # XGBoost
 xgb_model = xgb.XGBRegressor(random_state=42)
-xgb_param_grid = {'n_estimators': [10, 50, 100, 200], 'max_depth': [None, 10, 20, 30],
-                  'learning_rate': [0.01, 0.1, 0.2]}
+xgb_param_grid = {'n_estimators': [90, 100, 150], 'max_depth': [None, 1, 2, 3, 4],
+                  'learning_rate': [0.03, 0.05, 0.7]}
 xgb_best_model, xgb_mse, xgb_y_pred = perform_grid_search(xgb_model, xgb_param_grid, X_train, y_train, X_test, y_test,
                                                           'XGBoost')
 
 # Random Forest
 rf_model = RandomForestRegressor(random_state=42)
-rf_param_grid = {'n_estimators': [10, 50, 100, 200], 'max_depth': [None, 10, 20, 30], 'min_samples_split': [2, 5, 10],
-                 'min_samples_leaf': [1, 2, 4]}
+rf_param_grid = {'n_estimators': [65, 100, 200], 'max_depth': [None, 10, 12, 15], 'min_samples_split': [2, 6, 8, 10],
+                 'min_samples_leaf': [5, 7, 9]}
 rf_best_model, rf_mse, rf_y_pred = perform_grid_search(rf_model, rf_param_grid, X_train, y_train, X_test, y_test,
                                                        'Random Forest')
 
@@ -85,6 +85,19 @@ ensemble_y_pred = (knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred)
 ensemble_mse = mean_squared_error(y_test, ensemble_y_pred)
 print(f"Mean Squared Error for Ensemble:", ensemble_mse)
 
+validation = pd.read_csv('pc_X_test.csv')
+validation_ids = validation['id']
+validation = validation.drop(['id'], axis=1)
+validation = scaler.transform(validation)
+
+knn_y_pred = knn_best_model.predict(validation)
+dt_y_pred = dt_best_model.predict(validation)
+svm_y_pred = svm_best_model.predict(validation)
+xgb_y_pred = xgb_best_model.predict(validation)
+rf_y_pred = rf_best_model.predict(validation)
+
+ensemble_y_pred = (knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred) / 5
+
 predictions = {
     'KNN': (knn_mse, knn_y_pred),
     'Decision Tree': (dt_mse, dt_y_pred),
@@ -94,7 +107,9 @@ predictions = {
 }
 
 for algo_name, (error, preds) in predictions.items():
-    preds_df = pd.DataFrame(preds, columns=['score'])
+    preds_df = pd.DataFrame()
+    preds_df['id'] = validation_ids
+    preds_df = preds_df.join(pd.DataFrame(preds, columns=['score']))
     preds_df.to_csv(f'{algo_name}_pred.csv', index=False)
     with open(f'{algo_name}_error.txt', 'w') as f:
         f.write(f"Mean Squared Error for {algo_name}: {error}")
@@ -103,4 +118,3 @@ ensemble_preds_df = pd.DataFrame(ensemble_y_pred, columns=['score'])
 ensemble_preds_df.to_csv('ensemble_pred.csv', index=False)
 with open('ensemble_error.txt', 'w') as f:
     f.write(f"Mean Squared Error for Ensemble: {ensemble_mse}")
-
