@@ -114,7 +114,9 @@ for algo_name, (error, preds) in predictions.items():
     with open(f'{algo_name}_error.txt', 'w') as f:
         f.write(f"Mean Squared Error for {algo_name}: {error}")
 
-ensemble_preds_df = pd.DataFrame(ensemble_y_pred, columns=['score'])
+end_preds_df = pd.DataFrame()
+end_preds_df['id'] = validation_ids
+ensemble_preds_df =  end_preds_df.join(pd.DataFrame(ensemble_y_pred, columns=['score']))
 ensemble_preds_df.to_csv('ensemble_pred.csv', index=False)
 with open('ensemble_error.txt', 'w') as f:
     f.write(f"Mean Squared Error for Ensemble: {ensemble_mse}")
