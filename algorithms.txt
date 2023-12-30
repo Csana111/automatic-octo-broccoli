@@ -1,0 +1,91 @@
+KDD process! (analyzing and other stuff)
+- Attribute types!
+- Missing values?
+- Denormalization
+- Data cleansing
+- Data integration
+
+Numeric attributes:
+- sample mean
+- density
+- std dev
+
+Error measuring!!!
+- MSE
+- rMSE
+- relative
+- relativeSE
+- absoluteSE
+- statistical correlation
+
+Evaluation:
+- classic (classification)
+- cross entropy
+- clustering: internal, external
+
+Model selection:
+- simple
+- occam's razor
+- minimum description length
+
+Dataset:
+- random subsampling
+- K-fold
+- cross-validation
+- Loo-cv
+- Bootstrap
+
+Data transformations:
+- Selecting relevant attributes
+- Scheme-independent selection
+- Correlation-based Feature Selection
+- Scheme-specific selection (Wrapper approach)
+- Principal component analysis (PCA)
+- Random projections
+- Discretizing numerical attributes
+
+- Robust regression
+- Detect anomalies
+- Automatic data cleaning
+
+Algos:
+(Source coding)
+Bayesian network
+Naive bayes + laplace
+1R
+ID3
+Decision tree
+Linear regression
+Logistic regression
+Perceptron
+Ridge regression
+Winnow
+Lazy learning
+k-NN
+Clustering: K-means, mean shift, DBSCAN, GMM, Birch, Ward, Agglomerate, Spectral
+Apriori
+C 4.5
+CART
+CRUISE, GUIDE, QUEST, CHAID
+Lasso regression
+Reg. trees
+SVM
+K2
+TAN
+AD tree
+
+Ensemble:
+Stacking
+Bagging
+Random forest
+Rotation forest
+Boosting: Ada boost, Gradiant boosting, XGBoost
+
+Hiperparam. tuning!!!
+
+Classifications (multi):
+- One vs rest
+- One vs one
+- ECOC's
+
+Check neural networks!!!
