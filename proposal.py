@@ -1,13 +1,18 @@
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.cluster import KMeans
 import xgboost as xgb
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import BayesianRidge
 
 X = pd.read_csv('pc_X_train.csv')
 y = pd.read_csv('pc_y_train.csv')
@@ -23,6 +28,16 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.transform(X_test)
+
+# Error metrics
+error_metrics = {
+    'MSE': mean_squared_error,
+    'rMSE': lambda y_true, y_pred: np.sqrt(mean_squared_error(y_true, y_pred)),
+    'relative': lambda y_true, y_pred: np.mean(np.abs((y_true - y_pred) / y_true)) * 100,
+    'relativeSE': lambda y_true, y_pred: np.mean(np.square((y_true - y_pred) / y_true)) * 100,
+    'absoluteSE': mean_absolute_error,
+    'statistical correlation': r2_score
+}
 
 
 def perform_grid_search(model, param_grid, X_train, y_train, X_test, y_test, model_name):
@@ -44,35 +59,115 @@ def perform_grid_search(model, param_grid, X_train, y_train, X_test, y_test, mod
 
 # K-Nearest Neighbors
 knn_model = KNeighborsRegressor()
-knn_param_grid = {'n_neighbors': [14, 16, 18, 19]}
+knn_param_grid = {'n_neighbors': [5, 17, 18, 19], 'weights': ['uniform', 'distance'],
+                  'algorithm': ['auto', 'ball_tree', 'kd_tree', 'brute'], 'leaf_size': [5, 10, 15],
+                  'p': [1, 2]}
 knn_best_model, knn_mse, knn_y_pred = perform_grid_search(knn_model, knn_param_grid, X_train, y_train, X_test, y_test,
                                                           'KNN')
 
 # Decision Tree
 dt_model = DecisionTreeRegressor(random_state=42)
-dt_param_grid = {'max_depth': [None, 4, 5, 6, 8], 'min_samples_split': [16, 17, 18], 'min_samples_leaf': [7, 8, 10]}
+dt_param_grid = {'max_depth': [None, 4, 5, 6, 8], 'min_samples_split': [2, 14, 15, 16, 17],
+                 'min_samples_leaf': [1, 8, 10, 12]}
 dt_best_model, dt_mse, dt_y_pred = perform_grid_search(dt_model, dt_param_grid, X_train, y_train, X_test, y_test,
                                                        'Decision Tree')
 
 # Support Vector Machine
 svm_model = SVR()
-svm_param_grid = {'C': [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 1], 'kernel': ['linear', 'rbf']}
+svm_param_grid = {'C': [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 1], 'kernel': ['linear', 'rbf', 'poly', 'sigmoid']}
 svm_best_model, svm_mse, svm_y_pred = perform_grid_search(svm_model, svm_param_grid, X_train, y_train, X_test, y_test,
                                                           'SVM')
 
 # XGBoost
 xgb_model = xgb.XGBRegressor(random_state=42)
-xgb_param_grid = {'n_estimators': [90, 100, 150], 'max_depth': [None, 1, 2, 3, 4],
-                  'learning_rate': [0.03, 0.05, 0.7]}
+xgb_param_grid = {'n_estimators': [70, 75, 80, 90, 100], 'max_depth': [None, 2, 3, 6],
+                  'subsample': [0.8, 1, 1.2], 'colsample_bytree': [0.4, 0.5, 0.6]}
 xgb_best_model, xgb_mse, xgb_y_pred = perform_grid_search(xgb_model, xgb_param_grid, X_train, y_train, X_test, y_test,
                                                           'XGBoost')
 
 # Random Forest
 rf_model = RandomForestRegressor(random_state=42)
-rf_param_grid = {'n_estimators': [65, 100, 200], 'max_depth': [None, 10, 12, 15], 'min_samples_split': [2, 6, 8, 10],
-                 'min_samples_leaf': [5, 7, 9]}
+rf_param_grid = {'bootstrap': [True, False], 'n_estimators': [45, 50, 55, 60],
+                 'max_depth': [10, 12, 14, None], 'min_samples_leaf': [4, 5, 6], 'min_samples_split': [10, 12, 14]}
 rf_best_model, rf_mse, rf_y_pred = perform_grid_search(rf_model, rf_param_grid, X_train, y_train, X_test, y_test,
                                                        'Random Forest')
+
+# Bayesian Ridge
+bayesian_ridge_model = BayesianRidge()
+bay_param_grid = {'max_iter': [100, 200, 300, 400, 500], 'tol': [1e-3, 1e-4, 1e-5, 1e-6]}
+bay_best_model, bay_mse, bay_y_pred = perform_grid_search(bayesian_ridge_model, bay_param_grid, X_train, y_train,
+
+                                                          X_test, y_test, 'Bayesian Ridge')
+
+# Linear Regression
+linear_regression_model = LinearRegression()
+linear_param_grid = {'fit_intercept': [True, False], 'copy_X': [True, False]}
+linear_best_model, linear_mse, linear_y_pred = perform_grid_search(linear_regression_model, linear_param_grid, X_train,
+                                                                   y_train,
+                                                                   X_test, y_test, 'Linear Regression')
+
+# Ridge Regression
+ridge_regression_model = Ridge()
+ridge_param_grid = {'alpha': [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 1], 'fit_intercept': [True, False],
+                    'copy_X': [True, False], 'solver': ['lsqr', 'none']}
+ridge_best_model, ridge_mse, ridge_y_pred = perform_grid_search(ridge_regression_model, ridge_param_grid, X_train,
+                                                                y_train,
+                                                                X_test, y_test, 'Ridge Regression')
+
+# Lasso Regression
+lasso_regression_model = Lasso()
+lasso_param_grid = {'alpha': [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 1], 'fit_intercept': [True, False],
+                    'copy_X': [True, False]}
+lasso_best_model, lasso_mse, lasso_y_pred = perform_grid_search(lasso_regression_model, lasso_param_grid, X_train,
+                                                                y_train,
+                                                                X_test, y_test, 'Lasso Regression')
+
+# K-Means
+kmeans_model = KMeans()
+kmeans_param_grid = {'n_clusters': [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]}
+kmeans_best_model, kmeans_mse, kmeans_y_pred = perform_grid_search(kmeans_model, kmeans_param_grid, X_train, y_train,
+                                                                   X_test, y_test, 'K-Means')
+
+
+def model_selection(models, X_train, y_train, X_test, y_test, error_metrics):
+    model_errors = {}
+
+    for model_name, model in models.items():
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+
+        errors = {}
+        for error_name, error_func in error_metrics.items():
+            errors[error_name] = error_func(y_test, y_pred)
+
+        model_errors[model_name] = errors
+
+    return model_errors
+
+
+# Models
+models = {
+    'KNN': knn_best_model,
+    'Decision Tree': dt_best_model,
+    'SVM': svm_best_model,
+    'XGBoost': xgb_best_model,
+    'Random Forest': rf_best_model,
+    'Bayesian Ridge': bay_best_model,
+    'Linear Regression': linear_best_model,
+    'Ridge Regression': ridge_best_model,
+    'Lasso Regression': lasso_best_model,
+    'K-Means': kmeans_best_model,
+}
+
+# Perform model selection
+model_errors = model_selection(models, X_train, y_train, X_test, y_test, error_metrics)
+
+# Print model errors
+for model_name, errors in model_errors.items():
+    print(f"{model_name}:")
+    for error_name, error_value in errors.items():
+        print(f"  {error_name}: {error_value}")
+    print()
 
 # Ensemble
 knn_y_pred = knn_best_model.predict(X_test)
@@ -80,10 +175,18 @@ dt_y_pred = dt_best_model.predict(X_test)
 svm_y_pred = svm_best_model.predict(X_test)
 xgb_y_pred = xgb_best_model.predict(X_test)
 rf_y_pred = rf_best_model.predict(X_test)
+bay_y_pred = bay_best_model.predict(X_test)
+linear_y_pred = linear_best_model.predict(X_test)
+ridge_y_pred = ridge_best_model.predict(X_test)
+lasso_y_pred = lasso_best_model.predict(X_test)
+kmeans_y_pred = kmeans_best_model.predict(X_test)
 
-ensemble_y_pred = (knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred) / 5
-ensemble_mse = mean_squared_error(y_test, ensemble_y_pred)
-print(f"Mean Squared Error for Ensemble:", ensemble_mse)
+ensemble_y_pred = (
+                          knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred) / 10
+
+for error in error_metrics:
+    error_rate = error_metrics[error](y_test, ensemble_y_pred)
+    print(f"Ensemble {error}:", error_rate)
 
 validation = pd.read_csv('pc_X_test.csv')
 validation_ids = validation['id']
@@ -95,28 +198,40 @@ dt_y_pred = dt_best_model.predict(validation)
 svm_y_pred = svm_best_model.predict(validation)
 xgb_y_pred = xgb_best_model.predict(validation)
 rf_y_pred = rf_best_model.predict(validation)
-
-ensemble_y_pred = (knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred) / 5
+bay_y_pred = bay_best_model.predict(validation)
+linear_y_pred = linear_best_model.predict(validation)
+ridge_y_pred = ridge_best_model.predict(validation)
+lasso_y_pred = lasso_best_model.predict(validation)
+kmeans_y_pred = kmeans_best_model.predict(validation)
+ensemble_y_pred = (
+                          knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred) / 10
 
 predictions = {
     'KNN': (knn_mse, knn_y_pred),
     'Decision Tree': (dt_mse, dt_y_pred),
     'SVM': (svm_mse, svm_y_pred),
     'XGBoost': (xgb_mse, xgb_y_pred),
-    'Random Forest': (rf_mse, rf_y_pred)
+    'Random Forest': (rf_mse, rf_y_pred),
+    'Bayesian Ridge': (bay_mse, bay_y_pred),
+    'Linear Regression': (linear_mse, linear_y_pred),
+    'Ridge Regression': (ridge_mse, ridge_y_pred),
+    'Lasso Regression': (lasso_mse, lasso_y_pred),
+    'K-Means': (kmeans_mse, kmeans_y_pred),
 }
 
-for algo_name, (error, preds) in predictions.items():
+for algo_name, (errors, preds) in predictions.items():
     preds_df = pd.DataFrame()
     preds_df['id'] = validation_ids
     preds_df = preds_df.join(pd.DataFrame(preds, columns=['score']))
     preds_df.to_csv(f'{algo_name}_pred.csv', index=False)
     with open(f'{algo_name}_error.txt', 'w') as f:
-        f.write(f"Mean Squared Error for {algo_name}: {error}")
+        for error_name, error_func in error_metrics.items():
+            f.write(f"{error_name} for {algo_name}: {error_func(y_test, preds)}\n")
 
 end_preds_df = pd.DataFrame()
 end_preds_df['id'] = validation_ids
-ensemble_preds_df =  end_preds_df.join(pd.DataFrame(ensemble_y_pred, columns=['score']))
+ensemble_preds_df = end_preds_df.join(pd.DataFrame(ensemble_y_pred, columns=['score']))
 ensemble_preds_df.to_csv('ensemble_pred.csv', index=False)
 with open('ensemble_error.txt', 'w') as f:
-    f.write(f"Mean Squared Error for Ensemble: {ensemble_mse}")
+    for error_name, error_func in error_metrics.items():
+        f.write(f"{error_name} for Ensemble: {error_func(y_test, ensemble_y_pred)}\n")
