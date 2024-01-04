@@ -83,21 +83,21 @@ svm_best_model, svm_mse, svm_y_pred = perform_grid_search(svm_model, svm_param_g
 
 # XGBoost
 xgb_model = xgb.XGBRegressor(random_state=42)
-xgb_param_grid = {'n_estimators': [70, 75, 80, 90, 100, 200, 500, 1000], 'max_depth': [None, 2, 3, 6, 12, 24],
-                  'subsample': [0.8, 0.9, 1], 'colsample_bytree': [0.4, 0.5, 0.6, 0.8, 1]}
+xgb_param_grid = {'n_estimators': [65, 70, 75, 80, 100, 200], 'max_depth': [None, 2, 3, 6],
+                  'subsample': [0.8, 0.9, 1], 'colsample_bytree': [0.5, 0.6, 0.7, 1]}
 xgb_best_model, xgb_mse, xgb_y_pred = perform_grid_search(xgb_model, xgb_param_grid, X_train, y_train, X_test, y_test,
                                                           'XGBoost')
 
 # Random Forest
 rf_model = RandomForestRegressor(random_state=42)
-rf_param_grid = {'bootstrap': [True, False], 'n_estimators': [45, 50, 55, 60],
+rf_param_grid = {'n_estimators': [50, 55, 60],
                  'max_depth': [10, 12, 14, None], 'min_samples_leaf': [4, 5, 6], 'min_samples_split': [10, 12, 14]}
 rf_best_model, rf_mse, rf_y_pred = perform_grid_search(rf_model, rf_param_grid, X_train, y_train, X_test, y_test,
                                                        'Random Forest')
 
 # Bayesian Ridge
 bayesian_ridge_model = BayesianRidge()
-bay_param_grid = {'max_iter': [100, 200, 300, 400, 500], 'tol': [1e-3, 1e-4, 1e-5, 1e-6]}
+bay_param_grid = {'max_iter': [50, 100, 200, 300, 400, 500], 'tol': [0.01, 0.002, 1e-3, 1e-4, 1e-5, 1e-6]}
 bay_best_model, bay_mse, bay_y_pred = perform_grid_search(bayesian_ridge_model, bay_param_grid, X_train, y_train,
 
                                                           X_test, y_test, 'Bayesian Ridge')
@@ -111,8 +111,8 @@ linear_best_model, linear_mse, linear_y_pred = perform_grid_search(linear_regres
 
 # Ridge Regression
 ridge_regression_model = Ridge()
-ridge_param_grid = {'alpha': [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 1], 'fit_intercept': [True, False],
-                    'copy_X': [True, False], 'solver': ['lsqr', 'none']}
+ridge_param_grid = {'alpha': [0.1, 0.3, 0.5, 0.6, 0.7, 0.8, 1, 2, 5], 'fit_intercept': [True, False],
+                    'copy_X': [True, False]}
 ridge_best_model, ridge_mse, ridge_y_pred = perform_grid_search(ridge_regression_model, ridge_param_grid, X_train,
                                                                 y_train,
                                                                 X_test, y_test, 'Ridge Regression')
@@ -239,13 +239,15 @@ for algo_name, (errors, preds) in predictions.items():
     preds_df = preds_df.join(pd.DataFrame(preds, columns=['score']))
     preds_df.to_csv(f'{algo_name}_pred.csv', index=False)
     with open(f'{algo_name}_error.txt', 'w') as f:
-        for error_name, error_func in error_metrics.items():
-            f.write(f"{error_name} for {algo_name}: {error_func(y_test, preds)}\n")
+        for model_name, errors in model_errors.items():
+            for error_name, error_value in errors.items():
+                f.write(f"{error_name} for {algo_name}: {error_value}\n")
 
 end_preds_df = pd.DataFrame()
 end_preds_df['id'] = validation_ids
 ensemble_preds_df = end_preds_df.join(pd.DataFrame(ensemble_y_pred, columns=['score']))
 ensemble_preds_df.to_csv('ensemble_pred.csv', index=False)
 with open('ensemble_error.txt', 'w') as f:
-    for error_name, error_func in error_metrics.items():
-        f.write(f"{error_name} for Ensemble: {error_func(y_test, ensemble_y_pred)}\n")
+    for error in error_metrics:
+        error_rate = error_metrics[error](y_test, ensemble_y_pred)
+        f.write(f"Ensemble {error}: {error_rate}\n")
