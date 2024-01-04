@@ -15,6 +15,8 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import BayesianRidge
 from sklearn.decomposition import PCA
 
+from sklearn.neural_network import MLPRegressor
+
 X = pd.read_csv('pc_X_train.csv')
 y = pd.read_csv('pc_y_train.csv')
 
@@ -58,10 +60,6 @@ def perform_grid_search(model, param_grid, X_train, y_train, X_test, y_test, mod
     return model_, mse, y_pred
 
 
-pca = PCA(n_components=0.95)
-X_train = pca.fit_transform(X_train)
-X_test = pca.transform(X_test)
-
 # K-Nearest Neighbors
 knn_model = KNeighborsRegressor()
 knn_param_grid = {'n_neighbors': [5, 17, 18, 19], 'weights': ['uniform', 'distance'],
@@ -85,8 +83,8 @@ svm_best_model, svm_mse, svm_y_pred = perform_grid_search(svm_model, svm_param_g
 
 # XGBoost
 xgb_model = xgb.XGBRegressor(random_state=42)
-xgb_param_grid = {'n_estimators': [70, 75, 80, 90, 100], 'max_depth': [None, 2, 3, 6],
-                  'subsample': [0.8, 1, 1.2], 'colsample_bytree': [0.4, 0.5, 0.6]}
+xgb_param_grid = {'n_estimators': [70, 75, 80, 90, 100, 200, 500, 1000], 'max_depth': [None, 2, 3, 6, 12, 24],
+                  'subsample': [0.8, 0.9, 1], 'colsample_bytree': [0.4, 0.5, 0.6, 0.8, 1]}
 xgb_best_model, xgb_mse, xgb_y_pred = perform_grid_search(xgb_model, xgb_param_grid, X_train, y_train, X_test, y_test,
                                                           'XGBoost')
 
@@ -133,6 +131,12 @@ kmeans_param_grid = {'n_clusters': [2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]}
 kmeans_best_model, kmeans_mse, kmeans_y_pred = perform_grid_search(kmeans_model, kmeans_param_grid, X_train, y_train,
                                                                    X_test, y_test, 'K-Means')
 
+# Neural Network
+nn_model = MLPRegressor()
+nn_param_grid = {'hidden_layer_sizes': [(100,), (100, 100), (100, 100, 100), (100, 100, 100, 100)], 'activation': ['relu', 'tanh', 'logistic'], 'solver': ['adam', 'sgd'], 'learning_rate': ['constant', 'invscaling', 'adaptive']}
+nn_best_model, nn_mse, nn_y_pred = perform_grid_search(nn_model, nn_param_grid, X_train, y_train, X_test, y_test, 'Neural Network')
+
+
 
 def model_selection(models, X_train, y_train, X_test, y_test, error_metrics):
     model_errors = {}
@@ -162,6 +166,7 @@ models = {
     'Ridge Regression': ridge_best_model,
     'Lasso Regression': lasso_best_model,
     'K-Means': kmeans_best_model,
+    'Neural Network': nn_best_model
 }
 
 # Perform model selection
@@ -185,9 +190,10 @@ linear_y_pred = linear_best_model.predict(X_test)
 ridge_y_pred = ridge_best_model.predict(X_test)
 lasso_y_pred = lasso_best_model.predict(X_test)
 kmeans_y_pred = kmeans_best_model.predict(X_test)
+neural_y_pred = nn_best_model.predict(X_test)
 
 ensemble_y_pred = (
-                          knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred) / 10
+                          knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred + neural_y_pred) / 11
 
 for error in error_metrics:
     error_rate = error_metrics[error](y_test, ensemble_y_pred)
@@ -198,7 +204,6 @@ validation_ids = validation['id']
 validation = validation.drop(['id'], axis=1)
 validation = scaler.transform(validation)
 
-validation = pca.transform(validation)
 
 knn_y_pred = knn_best_model.predict(validation)
 dt_y_pred = dt_best_model.predict(validation)
@@ -210,8 +215,9 @@ linear_y_pred = linear_best_model.predict(validation)
 ridge_y_pred = ridge_best_model.predict(validation)
 lasso_y_pred = lasso_best_model.predict(validation)
 kmeans_y_pred = kmeans_best_model.predict(validation)
+neual_y_pred = nn_best_model.predict(validation)
 ensemble_y_pred = (
-                          knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred) / 10
+                          knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred + neual_y_pred) / 11
 
 predictions = {
     'KNN': (knn_mse, knn_y_pred),
@@ -224,6 +230,7 @@ predictions = {
     'Ridge Regression': (ridge_mse, ridge_y_pred),
     'Lasso Regression': (lasso_mse, lasso_y_pred),
     'K-Means': (kmeans_mse, kmeans_y_pred),
+    'Neural Network': (nn_mse, neural_y_pred)
 }
 
 for algo_name, (errors, preds) in predictions.items():
