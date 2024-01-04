@@ -13,6 +13,7 @@ from sklearn.cluster import KMeans
 import xgboost as xgb
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import BayesianRidge
+from sklearn.decomposition import PCA
 
 X = pd.read_csv('pc_X_train.csv')
 y = pd.read_csv('pc_y_train.csv')
@@ -56,6 +57,10 @@ def perform_grid_search(model, param_grid, X_train, y_train, X_test, y_test, mod
 
     return model_, mse, y_pred
 
+
+pca = PCA(n_components=0.95)
+X_train = pca.fit_transform(X_train)
+X_test = pca.transform(X_test)
 
 # K-Nearest Neighbors
 knn_model = KNeighborsRegressor()
@@ -192,6 +197,8 @@ validation = pd.read_csv('pc_X_test.csv')
 validation_ids = validation['id']
 validation = validation.drop(['id'], axis=1)
 validation = scaler.transform(validation)
+
+validation = pca.transform(validation)
 
 knn_y_pred = knn_best_model.predict(validation)
 dt_y_pred = dt_best_model.predict(validation)
