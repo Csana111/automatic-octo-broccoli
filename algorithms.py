@@ -58,7 +58,7 @@ def model_selection(models, X_train, y_train, X_test, y_test, error_metrics):
     return model_errors
 
 
-def run_models(X_train, y_train, X_test, y_test, validation):
+def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir_path):
     # K-Nearest Neighbors
     knn_model = KNeighborsRegressor()
     knn_param_grid = {'n_neighbors': [5, 17, 18, 19], 'weights': ['uniform', 'distance'],
@@ -93,7 +93,7 @@ def run_models(X_train, y_train, X_test, y_test, validation):
     # Random Forest
     rf_model = RandomForestRegressor(random_state=42)
     rf_param_grid = {'n_estimators': [50, 55, 60],
-                     'max_depth': [11, 12, 13, None], 'min_samples_leaf': [4, 5, 6], 'min_samples_split': [11, 12, 13]}
+                     'max_depth': [11, 12, 13, None], 'min_samples_leaf': [4, 5], 'min_samples_split': [11, 12, 13]}
     rf_best_model, rf_mse, rf_y_pred = perform_grid_search(rf_model, rf_param_grid, X_train, y_train, X_test, y_test,
                                                            'Random Forest')
 
@@ -144,7 +144,7 @@ def run_models(X_train, y_train, X_test, y_test, validation):
 
     # Neural Network
     nn_model = MLPRegressor()
-    nn_param_grid = {'hidden_layer_sizes': [(100,), (500,), (100, 100), (100, 500), (500, 100), (100, 100, 100)],
+    nn_param_grid = {'hidden_layer_sizes': [(100,), (200,), (100, 100), (100, 200), (200, 100)],
                      'activation': ['relu', 'tanh', 'logistic'], 'solver': ['adam', 'sgd'],
                      'learning_rate': ['constant', 'invscaling', 'adaptive']}
     nn_best_model, nn_mse, nn_y_pred = perform_grid_search(nn_model, nn_param_grid, X_train, y_train, X_test, y_test,
@@ -193,27 +193,27 @@ def run_models(X_train, y_train, X_test, y_test, validation):
     ensemble_y_pred = (
                               knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + ada_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred + neural_y_pred) / 12
 
-    for error in error_metrics:
-        error_rate = error_metrics[error](y_test, ensemble_y_pred)
-        print(f"Ensemble {error}:", error_rate)
+    with open(dir_path + 'ensemble_error.txt', 'w') as f:
+        for error in error_metrics:
+            error_rate = error_metrics[error](y_test, ensemble_y_pred)
+            print(f"Ensemble {error}:", error_rate)
+            f.write(f"Ensemble {error}: {error_rate}\n")
 
-    best_models = sorted(model_errors.items(), key=lambda x: x[1]['MSE'])[:5]
+    best_models = sorted(model_errors.items(), key=lambda x: x[1]['MSE'])[:3]
     best_models = [model[0] for model in best_models]
 
     ensemble_y_pred_best = np.zeros(len(y_test))
-    y_pred = np.zeros(len(y_test))
     for model_name in best_models:
         model = models[model_name]
         model.fit(X_train, y_train)
         y_pred = model.predict(X_test)
-    ensemble_y_pred_best += y_pred / 5
+        ensemble_y_pred_best += y_pred / 3
 
-    for error in error_metrics:
-        error_rate = error_metrics[error](y_test, ensemble_y_pred_best)
-        print(f"Ensemble {error}:", error_rate)
-
-    validation_ids = validation['id']
-    validation = validation.drop(['id'], axis=1)
+    with open(dir_path + 'ensemble_best_error.txt', 'w') as f:
+        for error in error_metrics:
+            error_rate = error_metrics[error](y_test, ensemble_y_pred_best)
+            print(f"Ensemble {error}:", error_rate)
+            f.write(f"Ensemble {error}: {error_rate}\n")
 
     knn_y_pred = knn_best_model.predict(validation)
     dt_y_pred = dt_best_model.predict(validation)
@@ -231,12 +231,11 @@ def run_models(X_train, y_train, X_test, y_test, validation):
                               knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + ada_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred + neual_y_pred) / 12
 
     ensemble_y_pred_best = np.zeros(len(validation))
-    y_pred = np.zeros(len(validation))
     for model_name in best_models:
         model = models[model_name]
         model.fit(X_train, y_train)
         y_pred = model.predict(validation)
-    ensemble_y_pred_best += y_pred / 5
+        ensemble_y_pred_best += y_pred / 3
 
     predictions = {
         'KNN': (knn_mse, knn_y_pred),
@@ -258,7 +257,7 @@ def run_models(X_train, y_train, X_test, y_test, validation):
         preds_df['id'] = validation_ids
         preds_df = preds_df.join(pd.DataFrame(preds, columns=['score']))
         preds_df.to_csv(f'{algo_name}_pred.csv', index=False)
-        with open(f'{algo_name}_error.txt', 'w') as f:
+        with open(dir_path + f'{algo_name}_error.txt', 'w') as f:
             for model_name, errors in model_errors.items():
                 for error_name, error_value in errors.items():
                     f.write(f"{error_name} for {algo_name}: {error_value}\n")
@@ -266,11 +265,7 @@ def run_models(X_train, y_train, X_test, y_test, validation):
     end_preds_df = pd.DataFrame()
     end_preds_df['id'] = validation_ids
     ensemble_preds_df = end_preds_df.join(pd.DataFrame(ensemble_y_pred, columns=['score']))
-    ensemble_preds_df.to_csv('ensemble_pred.csv', index=False)
+    ensemble_preds_df.to_csv(dir_path + 'ensemble_pred.csv', index=False)
     ensemble_preds_best_df = end_preds_df.join(pd.DataFrame(ensemble_y_pred_best, columns=['score']))
-    ensemble_preds_best_df.to_csv('ensemble_best_pred.csv', index=False)
-    with open('ensemble_error.txt', 'w') as f:
-        for error in error_metrics:
-            error_rate = error_metrics[error](y_test, ensemble_y_pred)
-            f.write(f"Ensemble {error}: {error_rate}\n")
+    ensemble_preds_best_df.to_csv(dir_path + 'ensemble_best_pred.csv', index=False)
 

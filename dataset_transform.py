@@ -24,6 +24,9 @@ def dataset_transform(X, y, validation, test_size=0.2, random_state=42, preproce
     data = pd.merge(X, y, on='id')
     data = data.drop(['id'], axis=1)
 
+    validation_id = validation['id']
+    validation = validation.drop(['id'], axis=1)
+
     train = data.drop(['score'], axis=1)
     y_ = data['score']
 
@@ -60,5 +63,8 @@ def dataset_transform(X, y, validation, test_size=0.2, random_state=42, preproce
         validation = pipeline.transform(validation)
     else:
         raise ValueError("No valid preprocessing or dimensionality reduction method provided")
-
-    return X_train, X_test, y_train, y_test, validation
+    print(f"X_train shape: {X_train.shape}")
+    print(f"X_test shape: {X_test.shape}")
+    print(f"y_train shape: {y_train.shape}")
+    print(f"y_test shape: {y_test.shape}")
+    return X_train, X_test, y_train, y_test, validation, validation_id

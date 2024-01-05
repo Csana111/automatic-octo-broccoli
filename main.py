@@ -8,18 +8,20 @@ def main():
     y_train = pd.read_csv('pc_y_train.csv')
     validation = pd.read_csv('pc_X_test.csv')
 
-    X_train, X_test, y_train, y_test, val = dataset_transform(
+    X_train, X_test, y_train, y_test, validation, validation_id = dataset_transform(
         X=X_train,
         y=y_train,
         validation=validation,
-        test_size=0.2,
+        test_size=0.3,
         random_state=42,
         preprocessing='StandardScaler',
         dim_reduction='PCA',
-        dim_reduction_params={'n_components': 2}
+        dim_reduction_params={'n_components': 10}
     )
 
-    run_models(X_train, X_test, y_train, y_test, val)
+    dir_path = 'results/' + dataset_transform().get('preprocessing') + '_' + dataset_transform().get('dim_reduction')
+
+    run_models(X_train, X_test, y_train, y_test, validation, validation_id)
 
 
 if __name__ == "__main__":
