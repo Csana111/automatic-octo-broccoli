@@ -67,4 +67,5 @@ def dataset_transform(X, y, validation, test_size=0.2, random_state=42, preproce
     print(f"X_test shape: {X_test.shape}")
     print(f"y_train shape: {y_train.shape}")
     print(f"y_test shape: {y_test.shape}")
-    return X_train, X_test, y_train, y_test, validation, validation_id
+    dir_path = f"results/{preprocessing}_{dim_reduction}/"
+    return X_train, X_test, y_train, y_test, validation, validation_id, dir_path

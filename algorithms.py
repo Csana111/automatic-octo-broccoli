@@ -13,7 +13,6 @@ from sklearn.linear_model import BayesianRidge
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.neural_network import MLPRegressor
 
-
 # Error metrics
 error_metrics = {
     'MSE': mean_squared_error,
@@ -84,22 +83,33 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
 
     # XGBoost
     xgb_model = xgb.XGBRegressor(random_state=42)
-    xgb_param_grid = {'n_estimators': [65, 70, 75, 80, 100, 200], 'max_depth': [None, 2, 3, 6],
-                      'subsample': [0.8, 0.9, 1], 'colsample_bytree': [0.5, 0.6, 0.7, 1]}
+    xgb_param_grid = {
+        'n_estimators': [40, 50, 65, 75, 100, 200],
+        'max_depth': [2, 3, 5, 6, 7, 8],
+        'subsample': [0.7, 0.8, 0.9, 1],
+        'colsample_bytree': [0.5, 0.6, 0.7, 0.8, 0.9, 1]
+    }
     xgb_best_model, xgb_mse, xgb_y_pred = perform_grid_search(xgb_model, xgb_param_grid, X_train, y_train, X_test,
                                                               y_test,
                                                               'XGBoost')
 
     # Random Forest
     rf_model = RandomForestRegressor(random_state=42)
-    rf_param_grid = {'n_estimators': [50, 55, 60],
-                     'max_depth': [11, 12, 13, None], 'min_samples_leaf': [4, 5], 'min_samples_split': [11, 12, 13]}
+    rf_param_grid = {
+        #estimators': [100, 200, 300, 500],
+        'max_depth': [5, 10, 15, None],
+        'min_samples_leaf': [1, 2, 4],
+        #'min_samples_split': [2, 5, 10]
+    }
     rf_best_model, rf_mse, rf_y_pred = perform_grid_search(rf_model, rf_param_grid, X_train, y_train, X_test, y_test,
                                                            'Random Forest')
 
     # AdaBoost
     ada_model = AdaBoostRegressor(random_state=42)
-    ada_param_grid = {'n_estimators': [10, 50, 100, 500], 'learning_rate': [0.0001, 0.001, 0.01, 0.1, 1.0]}
+    ada_param_grid = {
+        'n_estimators': [50, 100, 150, 200, 500, 1000],
+        'learning_rate': [0.01, 0.05, 0.1, 0.5, 1]
+    }
     ada_best_model, ada_mse, ada_y_pred = perform_grid_search(ada_model, ada_param_grid, X_train, y_train, X_test,
                                                               y_test,
                                                               'AdaBoost')
@@ -144,7 +154,7 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
 
     # Neural Network
     nn_model = MLPRegressor()
-    nn_param_grid = {'hidden_layer_sizes': [(100,), (200,), (100, 100), (100, 200), (200, 100)],
+    nn_param_grid = {'hidden_layer_sizes': [(300,), (400,), (300, 200), (400, 300), (200, 300)],
                      'activation': ['relu', 'tanh', 'logistic'], 'solver': ['adam', 'sgd'],
                      'learning_rate': ['constant', 'invscaling', 'adaptive']}
     nn_best_model, nn_mse, nn_y_pred = perform_grid_search(nn_model, nn_param_grid, X_train, y_train, X_test, y_test,
@@ -256,7 +266,7 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
         preds_df = pd.DataFrame()
         preds_df['id'] = validation_ids
         preds_df = preds_df.join(pd.DataFrame(preds, columns=['score']))
-        preds_df.to_csv(f'{algo_name}_pred.csv', index=False)
+        preds_df.to_csv(dir_path + f'{algo_name}_pred.csv', index=False)
         with open(dir_path + f'{algo_name}_error.txt', 'w') as f:
             for model_name, errors in model_errors.items():
                 for error_name, error_value in errors.items():
@@ -268,4 +278,3 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
     ensemble_preds_df.to_csv(dir_path + 'ensemble_pred.csv', index=False)
     ensemble_preds_best_df = end_preds_df.join(pd.DataFrame(ensemble_y_pred_best, columns=['score']))
     ensemble_preds_best_df.to_csv(dir_path + 'ensemble_best_pred.csv', index=False)
-
