@@ -1,3 +1,6 @@
+import pandas as pd
+from sklearn.pipeline import Pipeline
+
 from sklearn.decomposition import PCA
 from sklearn.decomposition import KernelPCA
 from sklearn.decomposition import SparsePCA
@@ -15,15 +18,47 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split
 
 
-def dataset_transform(X, y, test_size=0.2, random_state=42, pca = False, StandardScaler = False):
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+def dataset_transform(X, y, validation, test_size=0.2, random_state=42, preprocessing='StandardScaler', dim_reduction=None,
+                      dim_reduction_params=None):
 
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
+    data = pd.merge(X, y, on='id')
+    data = data.drop(['id'], axis=1)
 
-    pca = PCA(n_components=2)
-    X_train = pca.fit_transform(X_train)
-    X_test = pca.transform(X_test)
+    train = data.drop(['score'], axis=1)
+    y_ = data['score']
 
-    return X_train, X_test, y_train, y_test
+    X_train, X_test, y_train, y_test = train_test_split(train, y_, test_size=test_size, random_state=random_state)
+
+    preprocessing_steps = []
+    scaler = {
+        'StandardScaler': StandardScaler(),
+        'MinMaxScaler': MinMaxScaler(),
+        'RobustScaler': RobustScaler(),
+        'Normalizer': Normalizer(),
+        'QuantileTransformer': QuantileTransformer(),
+        'PowerTransformer': PowerTransformer(),
+        'PolynomialFeatures': PolynomialFeatures(),
+    }.get(preprocessing)
+    if scaler:
+        preprocessing_steps.append(('scaler', scaler))
+
+    dim_reduction_params = dim_reduction_params or {}
+    reducer = {
+        'PCA': PCA(**dim_reduction_params),
+        'KernelPCA': KernelPCA(**dim_reduction_params),
+        'SparsePCA': SparsePCA(**dim_reduction_params),
+        'TruncatedSVD': TruncatedSVD(**dim_reduction_params),
+        'FactorAnalysis': FactorAnalysis(**dim_reduction_params),
+    }.get(dim_reduction)
+    if reducer:
+        preprocessing_steps.append(('reducer', reducer))
+
+    if preprocessing_steps:
+        pipeline = Pipeline(steps=preprocessing_steps)
+        X_train = pipeline.fit_transform(X_train)
+        X_test = pipeline.transform(X_test)
+        validation = pipeline.transform(validation)
+    else:
+        raise ValueError("No valid preprocessing or dimensionality reduction method provided")
+
+    return X_train, X_test, y_train, y_test, validation
