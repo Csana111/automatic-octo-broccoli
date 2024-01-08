@@ -1,5 +1,6 @@
 from dataset_transform import dataset_transform
 from algorithms import run_models
+from final import run_final
 import pandas as pd
 import os
 
@@ -18,13 +19,13 @@ def main():
         preprocessing='PowerTransformer', # StandardScaler, MinMaxScaler, RobustScaler, Normalizer, QuantileTransformer, PowerTransformer, PolynomialFeatures
         preprocessing_params={},
         dim_reduction='SparsePCA',  # PCA, KernelPCA, SparsePCA, TruncatedSVD, FactorAnalysis
-        dim_reduction_params={}
+        dim_reduction_params={},
     )
 
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
 
-    run_models(X_train, X_test, y_train, y_test, validation, validation_id, dir_path)
+    run_final(X_train, X_test, y_train, y_test, validation, validation_id, dir_path)
 
 
 if __name__ == "__main__":
