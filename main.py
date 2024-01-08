@@ -15,7 +15,10 @@ def main():
         validation=validation,
         test_size=0.2,
         random_state=42,
-        preprocessing='Normalizer', # StandardScaler, MinMaxScaler, RobustScaler, Normalizer, QuantileTransformer, PowerTransformer, PolynomialFeatures
+        preprocessing='PowerTransformer', # StandardScaler, MinMaxScaler, RobustScaler, Normalizer, QuantileTransformer, PowerTransformer, PolynomialFeatures
+        preprocessing_params={},
+        dim_reduction='SparsePCA',  # PCA, KernelPCA, SparsePCA, TruncatedSVD, FactorAnalysis
+        dim_reduction_params={}
     )
 
     if not os.path.exists(dir_path):

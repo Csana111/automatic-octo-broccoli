@@ -18,7 +18,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split
 
 
-def dataset_transform(X, y, validation, test_size=0.2, random_state=42, preprocessing='StandardScaler', dim_reduction=None,
+def dataset_transform(X, y, validation, test_size=0.2, random_state=42, preprocessing='StandardScaler', preprocessing_params=None, dim_reduction=None,
                       dim_reduction_params=None):
 
     data = pd.merge(X, y, on='id')
@@ -33,14 +33,15 @@ def dataset_transform(X, y, validation, test_size=0.2, random_state=42, preproce
     X_train, X_test, y_train, y_test = train_test_split(train, y_, test_size=test_size, random_state=random_state)
 
     preprocessing_steps = []
+    preprocessing_params = preprocessing_params or {}
     scaler = {
-        'StandardScaler': StandardScaler(),
-        'MinMaxScaler': MinMaxScaler(),
-        'RobustScaler': RobustScaler(),
-        'Normalizer': Normalizer(),
-        'QuantileTransformer': QuantileTransformer(),
-        'PowerTransformer': PowerTransformer(),
-        'PolynomialFeatures': PolynomialFeatures(),
+        'StandardScaler': StandardScaler(**preprocessing_params),
+        'MinMaxScaler': MinMaxScaler(**preprocessing_params),
+        'RobustScaler': RobustScaler(**preprocessing_params),
+        'Normalizer': Normalizer(**preprocessing_params),
+        'QuantileTransformer': QuantileTransformer(**preprocessing_params),
+        'PowerTransformer': PowerTransformer(**preprocessing_params),
+        'PolynomialFeatures': PolynomialFeatures(**preprocessing_params),
     }.get(preprocessing)
     if scaler:
         preprocessing_steps.append(('scaler', scaler))

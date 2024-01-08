@@ -8,6 +8,9 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.cluster import KMeans
+from sklearn.cluster import MeanShift
+from sklearn.cluster import DBSCAN
+from sklearn.cluster import AgglomerativeClustering
 import xgboost as xgb
 from sklearn.linear_model import BayesianRidge
 from sklearn.ensemble import AdaBoostRegressor
@@ -85,7 +88,7 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
     xgb_model = xgb.XGBRegressor(random_state=42)
     xgb_param_grid = {
         'n_estimators': [40, 50, 65, 75, 100, 200],
-        'max_depth': [2, 3, 5, 6, 7, 8],
+        'max_depth': [2, 3, 5, 7, 9],
         'subsample': [0.7, 0.8, 0.9, 1],
         'colsample_bytree': [0.5, 0.6, 0.7, 0.8, 0.9, 1]
     }
@@ -152,6 +155,15 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
                                                                        y_train,
                                                                        X_test, y_test, 'K-Means')
 
+    # Mean Shift
+    mean_shift_model = MeanShift()
+    mean_shift_param_grid = {}
+    mean_shift_best_model, mean_shift_mse, mean_shift_y_pred = perform_grid_search(mean_shift_model,
+                                                                                   mean_shift_param_grid, X_train,
+                                                                          y_train,
+                                                                            X_test, y_test, 'Mean Shift')
+
+
     # Neural Network
     nn_model = MLPRegressor()
     nn_param_grid = {'hidden_layer_sizes': [(300,), (400,), (300, 200), (400, 300), (200, 300)],
@@ -173,6 +185,7 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
         'Ridge Regression': ridge_best_model,
         'Lasso Regression': lasso_best_model,
         'K-Means': kmeans_best_model,
+        'Mean Shift': mean_shift_best_model,
         'Neural Network': nn_best_model
     }
 
@@ -198,10 +211,11 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
     ridge_y_pred = ridge_best_model.predict(X_test)
     lasso_y_pred = lasso_best_model.predict(X_test)
     kmeans_y_pred = kmeans_best_model.predict(X_test)
+    mean_shift_y_pred = mean_shift_best_model.predict(X_test)
     neural_y_pred = nn_best_model.predict(X_test)
 
     ensemble_y_pred = (
-                              knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + ada_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred + neural_y_pred) / 12
+                              knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + ada_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred + mean_shift_y_pred + neural_y_pred) / 13
 
     with open(dir_path + 'ensemble_error.txt', 'w') as f:
         for error in error_metrics:
@@ -236,9 +250,10 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
     ridge_y_pred = ridge_best_model.predict(validation)
     lasso_y_pred = lasso_best_model.predict(validation)
     kmeans_y_pred = kmeans_best_model.predict(validation)
+    mean_shift_y_pred = mean_shift_best_model.predict(validation)
     neual_y_pred = nn_best_model.predict(validation)
     ensemble_y_pred = (
-                              knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + ada_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred + neual_y_pred) / 12
+                              knn_y_pred + dt_y_pred + svm_y_pred + xgb_y_pred + rf_y_pred + ada_y_pred + bay_y_pred + linear_y_pred + ridge_y_pred + lasso_y_pred + kmeans_y_pred + mean_shift_y_pred + neual_y_pred) / 13
 
     ensemble_y_pred_best = np.zeros(len(validation))
     for model_name in best_models:
@@ -259,6 +274,7 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
         'Ridge Regression': (ridge_mse, ridge_y_pred),
         'Lasso Regression': (lasso_mse, lasso_y_pred),
         'K-Means': (kmeans_mse, kmeans_y_pred),
+        'Mean Shift': (mean_shift_mse, mean_shift_y_pred),
         'Neural Network': (nn_mse, neural_y_pred)
     }
 
@@ -269,8 +285,9 @@ def run_models(X_train, X_test, y_train, y_test, validation, validation_ids, dir
         preds_df.to_csv(dir_path + f'{algo_name}_pred.csv', index=False)
         with open(dir_path + f'{algo_name}_error.txt', 'w') as f:
             for model_name, errors in model_errors.items():
-                for error_name, error_value in errors.items():
-                    f.write(f"{error_name} for {algo_name}: {error_value}\n")
+                if model_name == algo_name:
+                    for error_name, error_value in errors.items():
+                        f.write(f"{error_name} for {algo_name}: {error_value}\n")
 
     end_preds_df = pd.DataFrame()
     end_preds_df['id'] = validation_ids
