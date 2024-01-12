@@ -17,7 +17,7 @@ def main():
         test_size=0.2,
         random_state=42,
         preprocessing='PowerTransformer', # StandardScaler, MinMaxScaler, RobustScaler, Normalizer, QuantileTransformer, PowerTransformer, PolynomialFeatures
-        preprocessing_params={},
+        preprocessing_params={'method': 'yeo-johnson', 'standardize': False},
         dim_reduction='SparsePCA',  # PCA, KernelPCA, SparsePCA, TruncatedSVD, FactorAnalysis
         dim_reduction_params={}
     )
