@@ -19,7 +19,7 @@ def main():
         preprocessing='PowerTransformer', # StandardScaler, MinMaxScaler, RobustScaler, Normalizer, QuantileTransformer, PowerTransformer, PolynomialFeatures
         preprocessing_params={},
         dim_reduction='SparsePCA',  # PCA, KernelPCA, SparsePCA, TruncatedSVD, FactorAnalysis
-        dim_reduction_params={},
+        dim_reduction_params={}
     )
 
     if not os.path.exists(dir_path):
